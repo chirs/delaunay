@@ -20,70 +20,15 @@ import random
 # 4. The Euclidean minimum spanning tree of a set of points is a subset of the Delaunay triangulation of the same points, and this can be exploited to compute it efficiently.
 # 5. convex hull
 
-
-
-### Driving
-
-# Constrained Delaunay triangulation
-
+#Constrained Delaunay triangulation
 # https://en.wikipedia.org/wiki/Mesh_generation
-
 # https://www.openmesh.org/
 
 
-
-class Graph(object): pass
-class Mesh(object): pass
-class Path(object): pass    
-class Voronoi(object): pass
-
-
-class Segment(object):
-
-    """
-    A line segment
-    """
-
-    def __init__(self, p1, p2):
-        self.p1 = p1
-        self.p2 = p2
-
-    
-    def __repr__(self):
-        return "Segment {}, {}".format(self.p1, self.p2)
-
-
-    def move(self, vector):
-        return Segment(self.p1+vector, self.p2+vector)
-
-    def intersection(self, s2):
-        """
-        Return the point where Segment 1 and 2 intersect.
-        """
-        pass
-
-
-    def draw(self):
-        import rhinoscriptsyntax as rs
-        rs.AddLine([self.p1.x, self.p1.y, 0], [self.p2.x, self.p2.y, 0])
-
-
-
-class Intersection(object):
-
-    def __init__(self, s1, s2):
-        self.s1 = s1
-        self.s2 = s2
-
-
-
-
 class Point(object):
-
     """
     A point
     """
-
     def __init__(self, x, y):
         self.x = x
         self.y = y
@@ -115,6 +60,49 @@ class Point(object):
         rs.AddPoint([self.x, self.y, 0])
 
 
+def points_average(points):
+    """
+    Take the average of a list of points.
+    """
+    xs = sum([p.x for p in points])
+    ys = sum([p.y for p in points])
+    count = float(len(points))
+    #average = Point([xs/count, ys/count]) 
+    average = Point(0, 0)
+    return average
+
+
+class Segment(object):
+    """
+    A line segment
+    """
+    def __init__(self, p1, p2):
+        self.p1 = p1
+        self.p2 = p2
+    
+    def __repr__(self):
+        return "Segment {}, {}".format(self.p1, self.p2)
+
+    def move(self, vector):
+        return Segment(self.p1+vector, self.p2+vector)
+
+    def intersection(self, s2):
+        """
+        Return the point where Segment 1 and 2 intersect.
+        """
+        pass
+
+    def draw(self):
+        import rhinoscriptsyntax as rs
+        rs.AddLine([self.p1.x, self.p1.y, 0], [self.p2.x, self.p2.y, 0])
+
+
+class Intersection(object):
+
+    def __init__(self, s1, s2):
+        self.s1 = s1
+        self.s2 = s2
+
 
 class Circle(object):
     """
@@ -127,8 +115,6 @@ class Circle(object):
     def __repr__(self):
         return "Circle (c={}, r={})".format(self.center, self.radius)
 
-
-
     def distance(self, point):
         return point.distance(self.center)
 
@@ -140,17 +126,11 @@ class Circle(object):
         else:
             return self.radius - d
             
-
     def inside(self, point):
         return self.distance(point) < self.radius
 
-
-    def cartesian_to_polar(self, p):
-        pass
-
-    def polar_to_cartesian(theta):
-        pass
-
+    def cartesian_to_polar(self, p): pass
+    def polar_to_cartesian(theta): pass
 
 
 class Triangle(object):
@@ -164,14 +144,12 @@ class Triangle(object):
         self.p2 = p2
         self.p3 = p3
 
-
     def segments(self):
         return [
             Segment(self.p1, self.p2),
             Segment(self.p2, self.p3),
             Segment(self.p3, self.p1),
             ]
-
 
     def circumcenter(self):
         """
@@ -192,25 +170,28 @@ class Triangle(object):
         return Circle(center, radius)
 
 
+class Graph(object): pass
+class Mesh(object): pass
+class Path(object): pass    
+class Voronoi(object): pass
 
 
-
-def points_average(points):
+def main():
     """
-    Take the average of a list of points.
+    Generate connection images
     """
-    xs = sum([p.x for p in points])
-    ys = sum([p.y for p in points])
-    count = float(len(points))
-    #average = Point([xs/count, ys/count]) 
-    average = Point(0, 0)
-    return average
 
+    points = random_points(100, 10)
+    center = points_average(points)
+
+    connect_points(points)
+
+    delaunay_algorithms(points)
 
 
 def draw_all_lines(points):
     """
-    Draw every line.
+    Draw every line. Excessive.
     """
     for start in points:
         for end in points:
@@ -219,28 +200,11 @@ def draw_all_lines(points):
                 line.draw()
 
 
-
-
-def main():
-
-    points = random_points(100, 10)
-    center = points_average(points)
-
-    #for point in points:
-    #    point.draw()
-
-    #p1 = Point(0, 10)
-    #p2 = Point(10, 0)
-    #s1 = Segment(p1, p2)
-    #s1.draw()
-
-    connect_points(points)
-
-    delaunay_algorithms()
-
-
-
 def connect_points(points):
+    """
+    Connect each point to two random points
+    """
+
     npoints = points[:]
     random.shuffle(npoints)
 
@@ -249,46 +213,25 @@ def connect_points(points):
         s.draw()
 
 
-
-def delaunay_connect(points):
-
-    npoints = points[:]
-    random.shuffle(npoints)
-
-    p1 = points[0]
-    
-    lines = []
-
-    for p in points[1:]:
-        # lines.append...
-        pass # do something?
-    
-    #flip_triangles(lines)
-
-
-
-def delaunay_algorithms():
+def delaunay_algorithms(points):
 
     # https://en.wikipedia.org/wiki/Delaunay_triangulation#Algorithms
 
-    #flip()
-    for segment in incremental():
+    for segment in incremental(points):
         segment.move(Point(20,0)).draw()
-    #divide_and_conquer()
-    #sweephull()
 
-    pass
+    flip(points)
+    sweephull(points)
 
-    
 
-def incremental():
-    unconnected = random_points(100, 10)
+def incremental(points):
+    unconnected = points
+
     [point.draw() for point in unconnected]
     connected = set()
 
     previous = unconnected.pop()
     p2 = unconnected.pop()
-
     segments = []
     
     while unconnected:
@@ -296,50 +239,22 @@ def incremental():
         point = unconnected.pop(0)
         segment = Segment(previous, point)
         segments.append(segment)
-        
-
-
         previous = point
-
-
-
-
-
 
     return segments
         
-        
 
-        
-            
+def flip(points): pass
+def sweephull(points): pass
 
-        
-        
-        
-        
-
-    
-    
 
 def random_points(n, scale=1):
     
     xs = [scale * random.random() for e in range(n)]
     ys = [scale * random.random() for e in range(n)]
     zs = [scale * 0 for e in range(n)]
-
-
-    
     return [Point(*p) for p in zip(xs, ys)]
-    
-    
-
-    
 
 
 if __name__ == "__main__":
-    #print(point_distance((0, 1, 2), (0, 3, 5)))
-                        
-    #print(generate_points())
-    #print(shull())
-
     main()
