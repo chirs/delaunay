@@ -36,6 +36,10 @@ class Point(object):
     def __repr__(self):
         return "Point({}, {})".format(self.x, self.y)
 
+    def __hash__(self):
+        t = (self.x, self.y)
+        return hash(t)
+
     def __add__(self, p2):
         x = self.x + p2.x
         y = self.y + p2.y
@@ -60,6 +64,10 @@ class Point(object):
         rs.AddPoint([self.x, self.y, 0])
 
 
+    def cross_product(self, p2):
+        return (self.x * p2.y) - (self.y * p2.x)
+
+
 def points_average(points):
     """
     Take the average of a list of points.
@@ -67,8 +75,7 @@ def points_average(points):
     xs = sum([p.x for p in points])
     ys = sum([p.y for p in points])
     count = float(len(points))
-    #average = Point([xs/count, ys/count]) 
-    average = Point(0, 0)
+    average = Point(xs/count, ys/count)
     return average
 
 
@@ -86,22 +93,33 @@ class Segment(object):
     def move(self, vector):
         return Segment(self.p1+vector, self.p2+vector)
 
-    def intersection(self, s2):
-        """
-        Return the point where Segment 1 and 2 intersect.
-        """
-        pass
+
+    def vector(self):
+        return self.p2 - self.p1
+
+
+    def intersects(self, s2):
+
+        import pdb; pdb.set_trace()
+
+        p = self.p1
+        q = s2.p1
+        r = self.vector()
+        s = s2.vector()
+
+        cross_product = r.cross_product(s)
+
+        if cross_product == 0:
+            return False # bug: fix case of two collinear, overlapping segments
+
+        t = (q - p).cross_product(s) / r.cross_product(s)
+        return 0 <= t <= 1
+
 
     def draw(self):
         import rhinoscriptsyntax as rs
         rs.AddLine([self.p1.x, self.p1.y, 0], [self.p2.x, self.p2.y, 0])
 
-
-class Intersection(object):
-
-    def __init__(self, s1, s2):
-        self.s1 = s1
-        self.s2 = s2
 
 
 class Circle(object):
@@ -128,6 +146,12 @@ class Circle(object):
             
     def inside(self, point):
         return self.distance(point) < self.radius
+
+
+    def draw(self):
+        import rhinoscriptsyntax as rs
+        rs.AddCircle([self.center.x, self.center.y, 0], self.radius)
+        
 
     def cartesian_to_polar(self, p): pass
     def polar_to_cartesian(theta): pass
@@ -158,11 +182,15 @@ class Triangle(object):
     
         b_ = self.p2 - self.p1
         c_ = self.p3 - self.p1
+
         D_ = 2 * (b_.x * c_.y - b_.y * c_.x)
 
         x = (c_.y * (b_.x**2 + b_.y**2) - b_.y * (c_.x**2 + c_.y**2)) / D_
         y = (b_.x * (c_.x ** 2 + c_.y ** 2) - c_.x * (b_.x **2 + b_.y**2)) / D_
-        return Point(x, y)
+
+        cc = Point(x,y) + self.p1
+
+        return cc
         
     def circumcircle(self):
         center = self.circumcenter()
@@ -170,10 +198,99 @@ class Triangle(object):
         return Circle(center, radius)
 
 
-class Graph(object): pass
-class Mesh(object): pass
+    def draw(self):
+        for segment in self.segments():
+            segment.draw()
+
+
+
 class Path(object): pass    
+
+class Mesh(object): pass
+
 class Voronoi(object): pass
+
+
+
+class Triangulation(object): 
+
+    def __init__(self, triangles):
+        self.triangles = triangles
+    
+
+    def add_triangle(self, triangle):
+        self.triangles.append(triangle)
+
+    def points(self):
+        s = set()
+        for triangle in self.triangles:
+            s.add(triangle.p1)
+            s.add(triangle.p2)
+            s.add(triangle.p3)
+
+        return s
+
+    def segments(self):
+        s = set()
+
+        for triangle in self.triangles:
+            for segment in triangle.segments():
+                s.add(segment)
+
+
+class Graph(object): 
+
+    def __init__(self, edges=None):
+        if edges is None:
+            edges = []
+
+        self.edges = set(edges)
+
+    def vertices(self):
+        s = set()
+        for edge in self.edges:
+            s.add(edge.p1)
+            s.add(edge.p2)
+
+        return s
+
+
+    def add_edge(self, edge):
+        self.edges.add(edge)
+
+    def add_edges(self, edges):
+        for edge in edges:
+            self.add_edge(edge)
+
+    def add_triangle(self, triangle):
+        self.add_edges(triangle.segments())
+
+    def intersects_edge(self, segment):
+        for edge in self.edges:
+            if segment.intersects(edge):
+                return True
+
+        return False
+
+
+
+def test():
+
+    s5 = Segment(Point(0, 0), Point(5, 5))
+    s6 = Segment(Point(0, 4), Point(3, 4))
+    print(s5.intersects(s6))
+
+    return
+
+    s3 = Segment(Point(0, 0), Point(5, 0))
+    s4 = Segment(Point(0, 2), Point(5, 2))
+    print(s3.intersects(s4))
+
+    s1 = Segment(Point(0, 0), Point(5, 5))
+    s2 = Segment(Point(0, 5), Point(5, 0))
+    print(s1.intersects(s2))
+
+
 
 
 def main():
@@ -181,12 +298,68 @@ def main():
     Generate connection images
     """
 
+    test()
+
+
+
+    #points = random_points(100, 10)
+    #center = points_average(points)
+
+    #connect_points(points)
+
+    #delaunay_algorithms(points)
+    
+    #shull()
+        
+    
+
+
+def shull():
     points = random_points(100, 10)
-    center = points_average(points)
 
-    connect_points(points)
+    average_point = points_average(points) # Maybe just pick a point at random.
+    sorted_points = sorted(points, key=lambda p: average_point.distance(p))
+    seed_point = sorted_points[0]
+    sorted_by_seed = sorted(sorted_points[1:], key=lambda p: seed_point.distance(p))
+    p2 = sorted_by_seed[0]
+    circumcircle_sorted = sorted(sorted_by_seed[1:], key=lambda p: Triangle(seed_point, p2, p).circumcircle().radius)
+    p3 = circumcircle_sorted[0]
+    triangle = Triangle(seed_point, p2, p3)
 
-    delaunay_algorithms(points)
+    circumcenter = triangle.circumcenter()
+    points_from_circumcenter = sorted(circumcircle_sorted[1:], key=lambda p: circumcenter.distance(p))
+
+
+    g = Graph()
+    g.add_triangle(triangle)
+
+    for p1 in points_from_circumcenter:
+        added_points = g.vertices()
+        for p2 in added_points:
+            s1 = Segment(p1, p2)
+            if not g.intersects_edge(s1):
+                print("adding edge")
+                g.add_edge(s1)
+
+
+    #for edge in g.edges:
+    #    edge.draw()
+
+
+
+                
+
+        
+
+    
+
+    
+    
+
+    
+    
+    
+    
 
 
 def draw_all_lines(points):
