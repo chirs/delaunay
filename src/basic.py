@@ -32,12 +32,10 @@ import random
 
 
 
-class Graph(object):
-    pass
-
-
-
-
+class Graph(object): pass
+class Mesh(object): pass
+class Path(object): pass    
+class Voronoi(object): pass
 
 
 class Segment(object):
@@ -54,6 +52,9 @@ class Segment(object):
     def __repr__(self):
         return "Segment {}, {}".format(self.p1, self.p2)
 
+
+    def move(self, vector):
+        return Segment(self.p1+vector, self.p2+vector)
 
     def intersection(self, s2):
         """
@@ -233,7 +234,7 @@ def main():
     #s1 = Segment(p1, p2)
     #s1.draw()
 
-    #connect_points(points)
+    connect_points(points)
 
     delaunay_algorithms()
 
@@ -272,7 +273,7 @@ def delaunay_algorithms():
 
     #flip()
     for segment in incremental():
-        segment.draw()
+        segment.move(Point(20,0)).draw()
     #divide_and_conquer()
     #sweephull()
 

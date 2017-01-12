@@ -1,3 +1,17 @@
-### Computational Geometry exercises
+## Computational Geometry exercises in Python
 
-1. Starting with delaunay triangularization using S-hull algorithm. (http://www.s-hull.org/paper/s_hull.pdf)
+### Delaunay triangulation 
+
+S-hull algorithm: http://www.s-hull.org/paper/s_hull.pdf
+
+### Voronoi Diagram
+
+
+### Convex Hull
+
+### Line segment Intersection
+
+### Euclidean Shortest Path
+
+### Mesh Generation
+
