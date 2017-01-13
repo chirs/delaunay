@@ -106,8 +106,7 @@ class Segment(object):
 
         t = (q - p).cross_product(s) / r_cross_s
         u = (q - p).cross_product(r) / r_cross_s
-        # return (0 <= t <= 1) and (0 <= u <= 1)
-        return (0 <= t <= 1)
+        return (0 <= t <= 1) and (0 <= u <= 1)
 
     def draw(self):
         import rhinoscriptsyntax as rs
