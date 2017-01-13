@@ -15,3 +15,9 @@ S-hull algorithm: http://www.s-hull.org/paper/s_hull.pdf
 
 ### Mesh Generation
 
+
+Run the tests
+---------
+```
+PYTHONPATH=src pytest tests
+```

@@ -50,10 +50,8 @@ class Point(object):
         y = self.y - p2.y
         return Point(x, y)
 
-
     def __eq__(self, p2):
         return self.x == p2.x and self.y == p2.y
-        
 
     def distance(self, p2):
         d_squared = (self.x - p2.x)**2 + (self.y - p2.y)**2
@@ -62,7 +60,6 @@ class Point(object):
     def draw(self):
         import rhinoscriptsyntax as rs
         rs.AddPoint([self.x, self.y, 0])
-
 
     def cross_product(self, p2):
         return (self.x * p2.y) - (self.y * p2.x)
@@ -93,33 +90,28 @@ class Segment(object):
     def move(self, vector):
         return Segment(self.p1+vector, self.p2+vector)
 
-
     def vector(self):
         return self.p2 - self.p1
 
-
     def intersects(self, s2):
-
-        import pdb; pdb.set_trace()
-
         p = self.p1
         q = s2.p1
         r = self.vector()
         s = s2.vector()
 
-        cross_product = r.cross_product(s)
+        r_cross_s = r.cross_product(s)
 
-        if cross_product == 0:
-            return False # bug: fix case of two collinear, overlapping segments
+        if r_cross_s == 0:
+            return False   # todo: fix case of two collinear, overlapping segments
 
-        t = (q - p).cross_product(s) / r.cross_product(s)
-        return 0 <= t <= 1
-
+        t = (q - p).cross_product(s) / r_cross_s
+        u = (q - p).cross_product(r) / r_cross_s
+        # return (0 <= t <= 1) and (0 <= u <= 1)
+        return (0 <= t <= 1)
 
     def draw(self):
         import rhinoscriptsyntax as rs
         rs.AddLine([self.p1.x, self.p1.y, 0], [self.p2.x, self.p2.y, 0])
-
 
 
 class Circle(object):
@@ -273,26 +265,6 @@ class Graph(object):
         return False
 
 
-
-def test():
-
-    s5 = Segment(Point(0, 0), Point(5, 5))
-    s6 = Segment(Point(0, 4), Point(3, 4))
-    print(s5.intersects(s6))
-
-    return
-
-    s3 = Segment(Point(0, 0), Point(5, 0))
-    s4 = Segment(Point(0, 2), Point(5, 2))
-    print(s3.intersects(s4))
-
-    s1 = Segment(Point(0, 0), Point(5, 5))
-    s2 = Segment(Point(0, 5), Point(5, 0))
-    print(s1.intersects(s2))
-
-
-
-
 def main():
     """
     Generate connection images
@@ -312,8 +284,6 @@ def main():
     #shull()
         
     
-
-
 def shull():
     points = random_points(100, 10)
 
