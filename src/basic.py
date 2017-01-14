@@ -106,7 +106,7 @@ class Segment(object):
 
         t = (q - p).cross_product(s) / r_cross_s
         u = (q - p).cross_product(r) / r_cross_s
-        return (0 <= t <= 1) and (0 <= u <= 1)
+        return (0 < t < 1) and (0 < u < 1)
 
     def draw(self):
         import rhinoscriptsyntax as rs
@@ -269,7 +269,7 @@ def main():
     Generate connection images
     """
 
-    test()
+    #test()
 
 
 
@@ -280,7 +280,7 @@ def main():
 
     #delaunay_algorithms(points)
     
-    #shull()
+    shull()
         
     
 def shull():
@@ -307,12 +307,11 @@ def shull():
         for p2 in added_points:
             s1 = Segment(p1, p2)
             if not g.intersects_edge(s1):
-                print("adding edge")
                 g.add_edge(s1)
 
 
-    #for edge in g.edges:
-    #    edge.draw()
+    for edge in g.edges:
+        edge.draw()
 
 
 
