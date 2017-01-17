@@ -13,11 +13,14 @@ http://www.s-hull.org/paper/s_hull.pdf
 import math
 import random
 
+from collections import defaultdict
+
 ### todo
 
-# 2. Right-handed ordering of points on a circle.
-# 3. check if two segments intersect. (http://stackoverflow.com/questions/563198/how-do-you-detect-where-two-line-segments-intersect)
-# 4. The Euclidean minimum spanning tree of a set of points is a subset of the Delaunay triangulation of the same points, and this can be exploited to compute it efficiently.
+# 1. Right-handed ordering of triangles. -> improve; 
+# 2. Triangles / cycles from a graph
+# 3. Triangle pairs from a triangulation
+
 # 5. convex hull
 
 #Constrained Delaunay triangulation
@@ -36,6 +39,7 @@ class Point(object):
     def __repr__(self):
         return "Point({}, {})".format(self.x, self.y)
 
+        
     def __hash__(self):
         t = (self.x, self.y)
         return hash(t)
@@ -50,8 +54,17 @@ class Point(object):
         y = self.y - p2.y
         return Point(x, y)
 
+
     def __eq__(self, p2):
         return self.x == p2.x and self.y == p2.y
+
+    def __gt__(self, p2):
+        # Enough for comparison with __eq__?
+        if self.x != p2.x:
+            return self.x > p2.x
+        
+        else:
+            return self.y > p2.y
 
     def distance(self, p2):
         d_squared = (self.x - p2.x)**2 + (self.y - p2.y)**2
@@ -63,6 +76,10 @@ class Point(object):
 
     def cross_product(self, p2):
         return (self.x * p2.y) - (self.y * p2.x)
+
+
+    def tuple(self):
+        return (self.x, self.y, 0)
 
 
 def points_average(points):
@@ -86,6 +103,36 @@ class Segment(object):
     
     def __repr__(self):
         return "Segment {}, {}".format(self.p1, self.p2)
+
+    # Some definite issues to think about here wrt directionality of segments.
+
+    def __gt__(self, s2):
+        # Check if they're the same?
+        if self.p1 != s2.p1:
+            return self.p1 < s2.p1 
+        else:
+            return self.p2 < s2.p2
+
+
+
+
+    def __eq__(self, s2):
+        if self.p1 == s2.p1 and self.p2 == s2.p2:
+            return True
+        elif self.p2 == s2.p1 and self.p1 == s2.p2:
+            return True
+        else:
+            return False
+
+    def __hash__(self):
+        t = (self.p1.x, self.p1.y, self.p2.x, self.p2.x)
+        return hash(t)
+
+    def reverse(self):
+        return Segment(self.p2, self.p1)
+
+    def tuple(self):
+        return (self.p1.tuple(), self.p2.tuple())
 
     def move(self, vector):
         return Segment(self.p1+vector, self.p2+vector)
@@ -159,6 +206,10 @@ class Triangle(object):
         self.p2 = p2
         self.p3 = p3
 
+
+    def points(self):
+        return [self.p1, self.p2, self.p3]
+
     def segments(self):
         return [
             Segment(self.p1, self.p2),
@@ -190,24 +241,134 @@ class Triangle(object):
 
 
     def draw(self):
-        for segment in self.segments():
-            segment.draw()
+        import rhinoscriptsyntax as rs
+        l = [e.tuple() for e in self.points()]
+        l.append(l[0])
+        rs.AddPolyline(l)
+
+
+    def reorder(self):
+        pass
 
 
 
 class Path(object): pass    
-
 class Mesh(object): pass
-
 class Voronoi(object): pass
+class ConvexHull(object): pass
 
 
+
+
+class Graph(object): 
+
+    def __init__(self, edges=None):
+        if edges is None:
+            edges = []
+
+        self.edges = set(edges)
+
+    def vertices(self):
+        s = set()
+        for edge in self.edges:
+            s.add(edge.p1)
+            s.add(edge.p2)
+
+        return s
+
+
+    def swap_edges(self, l1, l2):
+        pass
+
+
+    def add_edge(self, edge):
+        self.edges.add(edge)
+
+    def add_edges(self, edges):
+        for edge in edges:
+            self.add_edge(edge)
+
+    def add_triangle(self, triangle):
+        self.add_edges(triangle.segments())
+
+    def intersects_edge(self, segment):
+        for edge in self.edges:
+            if segment.intersects(edge):
+                return True
+
+        return False
+
+
+    def adjacency_map(self):
+        d = defaultdict(list)
+
+        for edge in self.edges:
+            #if edge.p1 not in d: d[edge.p1] = []
+            #if edge.p2 not in d: d[edge.p2] = []
+
+            #d[edge.p1].append(d[edge.p2]) # Vicious circle! 
+
+            d[edge.p1].append(edge.p2)
+            d[edge.p2].append(edge.p1)
+
+        return d
+
+
+    def triangles(self):
+        triangles = set()
+        adjacency_map = self.adjacency_map()
+
+        for p1, p2s in adjacency_map.items():
+
+            for p2 in p2s:
+                p2_neighbors = adjacency_map[p2]
+
+                for p3 in p2_neighbors:
+                    if p3 != p1 and p1 in adjacency_map[p3]:
+                        triangles.add(tuple(sorted([p1,p2,p3])))
+
+        return triangles
+
+
+    def cycles(self, depth=2):
+        pass
+
+    def draw(self):
+        for edge in self.edges:
+            edge.draw()
+
+    
 
 class Triangulation(object): 
 
-    def __init__(self, triangles):
+    def __init__(self, triangles=None):
+        if triangles is None:
+            triangles = []
+
         self.triangles = triangles
-    
+
+    def adjacents(self):
+        d = defaultdict(int)
+
+        for triangle in self.triangles:
+            segments = triangle.segments()
+            for segment in segments:
+                d[segment] += 1
+                d[segment.reverse()] += 1
+
+        multiples = [k for (k, v) in d.items() if v > 1]
+
+        s = set()
+        for m in multiples:
+            r = m.reverse()
+            if m < r:
+                s.add(m)
+            else:
+                s.add(r)
+
+        return s
+            
+            
 
     def add_triangle(self, triangle):
         self.triangles.append(triangle)
@@ -229,41 +390,12 @@ class Triangulation(object):
                 s.add(segment)
 
 
-class Graph(object): 
-
-    def __init__(self, edges=None):
-        if edges is None:
-            edges = []
-
-        self.edges = set(edges)
-
-    def vertices(self):
-        s = set()
-        for edge in self.edges:
-            s.add(edge.p1)
-            s.add(edge.p2)
-
-        return s
+    def draw(self):
+                        
+        pass
 
 
-    def add_edge(self, edge):
-        self.edges.add(edge)
-
-    def add_edges(self, edges):
-        for edge in edges:
-            self.add_edge(edge)
-
-    def add_triangle(self, triangle):
-        self.add_edges(triangle.segments())
-
-    def intersects_edge(self, segment):
-        for edge in self.edges:
-            if segment.intersects(edge):
-                return True
-
-        return False
-
-
+                                 
 def main():
     """
     Generate connection images
@@ -281,6 +413,11 @@ def main():
     #delaunay_algorithms(points)
     
     shull()
+
+
+
+def convex_hull(points):
+    sorted_points = sorted(points, lambda p: p.y)
         
     
 def shull():
@@ -309,25 +446,17 @@ def shull():
             if not g.intersects_edge(s1):
                 g.add_edge(s1)
 
+    triangles = [Triangle(*triangle) for triangle in g.triangles()]
+    t  = Triangulation(triangles)
 
-    for edge in g.edges:
-        edge.draw()
+    #t.draw()
+    #g.draw()
 
+    for a in t.adjacents():
+        a.draw()
 
-
-                
-
-        
-
-    
-
-    
-    
-
-    
-    
-    
-    
+    #for edge in g.edges:
+    #    edge.draw()
 
 
 def draw_all_lines(points):
