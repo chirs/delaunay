@@ -104,6 +104,8 @@ class Point(object):
     def draw(self):
         import rhinoscriptsyntax as rs
         rs.AddPoint([self.x, self.y, self.z])
+        #ellipse(mouseX, mouseY, 20, 20)
+
 
     def cross_product(self, p2):
         # Add z value to this?
