@@ -1,7 +1,11 @@
-from geometry.primitives import Point, Segment, Circle, Triangle
-import pytest
+#!/usr/bin/env python3
 
 import math
+
+import pytest
+
+from geometry.primitives import Point, Segment, Circle, Triangle
+from geometry.convex import left_turn
 
 p_null = Point.null()
 p_unit = Point.unit() # (1, 0, 0)
@@ -12,9 +16,6 @@ p3 = Point(-1, 0, 0)
 p4 = Point(0, -1, 0)
 
 p5 = Point(1, 1, 0)
-
-
-
 
 
 class TestPoint(object):
@@ -41,6 +42,7 @@ class TestPoint(object):
                     
 
 
+        
 SEGMENT_INTERSECTIONS = [
     # Non-parallel, non-intersecting
     (Segment(Point(0, 0, 0), Point(5, 5, 0)), Segment(Point(0, 4, 0), Point(3, 4, 0)), False),
@@ -86,3 +88,28 @@ class TestTriangle(object):
         assert t2n.p1 == t2.p1
         assert t2n.p2 == t2.p3
         assert t2n.p3 == t2.p2
+
+
+
+
+
+class TestLeftTurn(object):
+
+    def test_left_turn(self):
+        l1 = Point.null()
+        l2 = Point.unit()
+        l3 = Point(1, 1, 0)
+        l4 = Point(1, -1, 0)
+        
+        assert left_turn(l1, l2, l3) == True
+        assert left_turn(l1, l2, l4) == False
+
+        p0 = Point.null()
+        p1 = Point(0, 1, 0)
+
+        assert left_turn(p0, p1, Point(-1, 1, 0)) == True
+        assert left_turn(p0, p1, Point(-1, 0, 0)) == True
+
+        assert left_turn(p0, p1, Point(1, 0, 0)) == False
+        assert left_turn(p0, p1, Point(1, 1000, 0)) == False
+
