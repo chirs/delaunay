@@ -6,6 +6,10 @@ import random
 from collections import defaultdict
 
 
+class GeometryException(Exception):
+    pass
+
+
 
 radians2degrees = lambda r: 180 * radians / math.pi
 degrees2radians = lambda d: degrees * math.pi / 180
@@ -16,23 +20,13 @@ def random_points(n, scale=1, grid=False):
     Generate random points
     """
 
-    xs = [scale * random.random() for e in range(n)]
-    if grid:
-        xs = [round(x) for x in xs]
-
-    ys = [scale * random.random() for e in range(n)]
-    if grid:
-        ys = [round(y) for y in ys]
-
-    zs = [scale * 0 for e in range(n)]
-
-    return [Point(*p) for p in zip(xs, ys, zs)]
-
+    points = [Point.random(scale, grid) for e in range(n)]
+    return points
 
 
 class Point(object):
     """
-    A point
+    A point class.
     """
     
     def __init__(self, x, y, z):
@@ -60,6 +54,9 @@ class Point(object):
         return Point(x, y, z)
 
 
+    def __mul__(self, s):
+        return Point(self.x*s, self.y*s, self.z*s)
+
     def __eq__(self, p2):
         return self.x == p2.x and self.y == p2.y and self.z == p2.z
 
@@ -72,12 +69,16 @@ class Point(object):
         else:
             return self.y > p2.y
 
+    def divide(self, d):
+        return Point(self.x/float(d), self.y/float(d), self.z/float(d))
 
+    __div__ = __truediv__ = __floordiv__ = divide
+
+    def reverse(self):
+        return self * -1
 
     def magnitude(self):
         return math.sqrt(self.x ** 2 + self.y ** 2 + self.z ** 2)
-
-
 
     def normalize(self):
         magnitude = self.magnitude()
@@ -87,15 +88,44 @@ class Point(object):
 
 
     def angle(self):
-        """in radians"""
-        # Is this correct angle? 
+        """Get the angle of a vector"""
+        # in radians
+
         p_ = self.normalize()
 
-        try:
-            return math.asin(self.x)
-        except:
-            import pdb; pdb.set_trace()
-            x = 5
+        angle = math.atan2(p_.y, p_.x)
+        if angle < 0:
+            angle += math.pi * 2
+
+        return angle
+
+        if p_.y == 0:
+            if p_.x > 0:
+                return 0
+            else:
+                return math.pi
+
+        if p_.x != 0:
+            angle = math.atan(p_.y/p_.x)
+            if angle < 0:
+                angle += (2 * math.pi)
+            return angle
+        
+        else:
+            if p_.y == 0:
+                raise GeometryException
+            elif p_.y > 0:
+                return math.pi / 2
+            else:
+                return 3 * math.pi / 2
+        
+
+
+    def degree_angle(self):
+        return 180 * self.angle() / math.pi
+
+
+
 
     def distance(self, p2):
         d_squared = (self.x - p2.x)**2 + (self.y - p2.y)**2 + (self.z - p2.z)**2
@@ -140,22 +170,14 @@ class Point(object):
         return Point(x, y, z)
 
 
-
-def points_average(points):
-    """
-    Take the average of a list of points.
-    """
-    xs = sum([p.x for p in points])
-    ys = sum([p.y for p in points])
-    count = float(len(points))
-    average = Point(xs/count, ys/count, 0)
-    return average
-
-
 class Segment(object):
     """
     A line segment
     """
+    # Is this really a segment or is this an edge?
+    # What is the difference?
+    # How to handle directionality?
+    
     def __init__(self, p1, p2):
         self.p1 = p1
         self.p2 = p2
@@ -163,16 +185,20 @@ class Segment(object):
     def __repr__(self):
         return "Segment {}, {}".format(self.p1, self.p2)
 
-    # Some definite issues to think about here wrt directionality of segments.
+
 
     def __gt__(self, s2):
-        # Check if they're the same?
+
+        if self == s2:
+            return 0 # What to do if they're the same?
+        
         if self.p1 != s2.p1:
             return self.p1 < s2.p1 
         else:
             return self.p2 < s2.p2
 
     def __eq__(self, s2):
+        # Directionality?
         if self.p1 == s2.p1 and self.p2 == s2.p2:
             return True
         elif self.p2 == s2.p1 and self.p1 == s2.p2:
@@ -181,25 +207,35 @@ class Segment(object):
             return False
 
     def __hash__(self):
+        # Better hashing?
         t = (self.p1.x, self.p1.y, self.p2.x, self.p2.x)
         return hash(t)
 
     def reverse(self):
         return Segment(self.p2, self.p1)
 
+    def vector(self):
+        return self.p2 - self.p1
+
     def length(self):
         return self.vector().magnitude()
 
     def tuple(self):
+        """
+        Representation as a tuple
+        """ # json?
         return (self.p1.tuple(), self.p2.tuple())
 
     def move(self, vector):
         return Segment(self.p1+vector, self.p2+vector)
 
-    def vector(self):
-        return self.p2 - self.p1
-
     def intersects(self, s2):
+        """
+        Check whether two segments intersect.
+        """
+        # This is hugely important.
+        # Do some research about how to best implement.
+        
         p = self.p1
         q = s2.p1
         r = self.vector()
@@ -207,14 +243,16 @@ class Segment(object):
 
         r_cross_s = r.cross_product(s)
 
+        # todo: address case of two collinear, overlapping segments
         if r_cross_s == 0:
-            return False   # todo: fix case of two collinear, overlapping segments
+            return False   
 
         t = (q - p).cross_product(s) / r_cross_s
         u = (q - p).cross_product(r) / r_cross_s
         return (0 < t < 1) and (0 < u < 1)
 
     def draw(self):
+        # how to handle drawing to multiple different media?
         import rhinoscriptsyntax as rs
         rs.AddLine([self.p1.x, self.p1.y, 0], [self.p2.x, self.p2.y, 0])
 
@@ -264,6 +302,17 @@ class Triangle(object):
         self.p1 = p1
         self.p2 = p2
         self.p3 = p3
+
+
+    def normalize(self):
+        """
+        Make sure triangle handedness goes correct direction...
+        """
+        l = [self.p1, self.p2, self.p3]
+        angles = [e.angle() for e in l]
+        z = zip(angles, l)
+        st = [e[1] for e in sorted(z, key=lambda k: k[0])] # sort better?
+        return Triangle(*st)
 
 
     def points(self):
