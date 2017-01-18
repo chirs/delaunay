@@ -1,5 +1,12 @@
 
-from .primitives import Point, Segment, Graph
+from primitives import Point, Segment, Graph, Circle
+
+
+def values_over_grayscale_spectrum(n):
+    
+    return [e for e in range(0, 255, int(255 / n))]
+
+
 
 
 def graham_scan(points):
@@ -8,14 +15,13 @@ def graham_scan(points):
     All right turns will be eliminated.
     """
 
-    # [p.draw() for p in points]
-    points_ = sorted(points, key=lambda p: -p.y) # the bottom-most point
 
-    start = points[0]
+    points_ = sorted(points, key=lambda p: p.y) # the bottom-most point
+    start = points_[0]
 
     # sort by angle from unit circle.
     # So that there is a clean sweep of points, I think.
-    sorted_points = sorted(points_[1:], key=lambda p: start.angle() - p.angle())
+    sorted_points = sorted(points_[1:], key=lambda p: (p - start).angle())
 
     visited = [start, sorted_points[0]]
     unvisited = sorted_points[1:]
@@ -31,14 +37,17 @@ def graham_scan(points):
         if turns_left:
             visited.append(candidate)
             candidate = unvisited.pop(0)
+            # final candidate getting forgotten when while loop terminates
         else:
             # turns right; ignore collinearity
-            visited.pop() 
-            
+            visited.pop()
+
     visited.append(start)
     
-    edges = [Segment(start, end) for (start, end) in zip(candidate_stack, candidate_stack[1:])]
+    edges = [Segment(start, end) for (start, end) in zip(visited, visited[1:])]
     graph = Graph(edges)
+
+    [p.draw() for p in points]
     graph.draw()
 
             

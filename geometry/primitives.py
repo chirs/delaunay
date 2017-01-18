@@ -6,6 +6,39 @@ import random
 from collections import defaultdict
 
 
+
+_NUMERALS = '0123456789abcdefABCDEF'
+_HEXDEC = {v: int(v, 16) for v in (x+y for x in _NUMERALS for y in _NUMERALS)}
+LOWERCASE, UPPERCASE = 'x', 'X'
+
+def rgb(triplet):
+    """
+    Converts a RGB triplet, e.g. "#cc00ff" into rgb values between 0 and 255.
+    """
+    # needs testing
+    #if len(triplet) == 3:
+    #    triplet = "".join([a + a for a in triplet]
+    return _HEXDEC[triplet[0:2]], _HEXDEC[triplet[2:4]], _HEXDEC[triplet[4:6]]
+
+def convert_to_rgb(s):
+    if s.startswith("#"):
+        s = s[1:]
+
+    return rgb(s)
+
+
+def set_line_color(hex_string):
+    # cf linetools.py, studio4
+
+    import System.Drawing.Color
+
+    rgb = convert_to_rgb(hex_string)
+    line_color = System.Drawing.Color.FromArgb(*rgb)
+        
+    return rgb(s)
+
+
+
 class GeometryException(Exception):
     pass
 
@@ -251,10 +284,17 @@ class Segment(object):
         u = (q - p).cross_product(r) / r_cross_s
         return (0 < t < 1) and (0 < u < 1)
 
-    def draw(self):
-        # how to handle drawing to multiple different media?
+    def draw(self, t=None):
+
+        import System.Drawing.Color
         import rhinoscriptsyntax as rs
-        rs.AddLine([self.p1.x, self.p1.y, 0], [self.p2.x, self.p2.y, 0])
+
+        if t is None:
+            t = (255, 255, 255)
+
+        line_color = System.Drawing.Color.FromArgb(*t)
+        
+        rs.AddLine([self.p1.x, self.p1.y, self.p1.z], [self.p2.x, self.p2.y, self.p2.z])
 
 
 class Circle(object):
